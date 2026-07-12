@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 24px 0;">
+
+  <h1 style="margin-bottom: 8px;">Генерация документа</h1>
+  <p style="color: #888; margin-bottom: 24px;">Контакт: <strong>{{ contact }}</strong></p>
+
+  {% if missing_fields %}
+  <div style="
+    background: #f7c04f22; border: 1px solid #f7c04f55;
+    border-radius: 6px; padding: 14px 18px; margin-bottom: 20px;
+  ">
+    <strong style="color:#f7c04f;">⚠ Внимание — не заполнены ключевые поля:</strong>
+    <ul style="margin: 8px 0 0 20px;">
+      {% for field in missing_fields %}
+        <li>{{ field }}</li>
+      {% endfor %}
+    </ul>
+    <p style="margin-top: 10px; font-size: 13px;">
+      Документ можно сгенерировать и сейчас — пустые поля останутся пустыми в файле.
+      Рекомендуем сначала <a href="/admin/bot/contact/{{ contact.id }}/change/">дозаполнить карточку</a>.
+    </p>
+  </div>
+  {% endif %}
+
+  {% if templates %}
+  <form method="post">
+    {% csrf_token %}
+    <label style="display:block; margin-bottom: 8px; font-weight: 600;">Выберите шаблон документа:</label>
+    <select name="template_id" required style="
+      width: 100%; padding: 10px 12px; border-radius: 4px;
+      border: 1px solid #444; margin-bottom: 20px; font-size: 14px;
+    ">
+      {% for tpl in templates %}
+        <option value="{{ tpl.id }}">{{ tpl.name }}{% if tpl.product %} — {{ tpl.product }}{% endif %}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="button" style="
+      background: #4f8ef7; color: #fff; padding: 10px 24px;
+      border-radius: 4px; border: none; cursor: pointer; font-size: 14px;
+    ">Сгенерировать документ</button>
+    <a href="/admin/bot/contact/{{ contact.id }}/change/" style="margin-left: 12px;">Отмена</a>
+  </form>
+  {% else %}
+  <p>Шаблоны документов пока не загружены. Добавьте их в разделе
+     <a href="/admin/bot/documenttemplate/add/">«Шаблоны документов»</a>.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

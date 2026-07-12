@@ -1,0 +1,11 @@
+# Виртуальное окружение и настройки
+.venv/
+.env
+
+# Файлы Python и Django
+__pycache__/
+*.pyc
+
+
+# Редакторы и IDE
+.vscode/

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Дашборд — Юридическая платформа</title>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d27;
+    --border:   #2a2d3a;
+    --accent:   #4f8ef7;
+    --accent2:  #f7c04f;
+    --text:     #e8eaf0;
+    --muted:    #6b7080;
+    --danger:   #f75f4f;
+    --success:  #4ff7a0;
+    --font:     'JetBrains Mono', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header h1 { font-size: 15px; letter-spacing: .08em; color: var(--accent); }
+  header a { color: var(--muted); text-decoration: none; font-size: 12px; }
+  header a:hover { color: var(--text); }
+
+  .toolbar {
+    display: flex; gap: 12px; align-items: center;
+    padding: 14px 28px; border-bottom: 1px solid var(--border);
+  }
+  .toolbar input {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 4px;
+    font-family: var(--font); font-size: 12px; width: 260px;
+    outline: none;
+  }
+  .toolbar input:focus { border-color: var(--accent); }
+  .badge {
+    display: inline-block; padding: 2px 7px; border-radius: 10px;
+    font-size: 10px; font-weight: bold; letter-spacing: .05em;
+  }
+  .badge-new    { background: var(--danger);  color: #fff; }
+  .badge-lead   { background: var(--accent2); color: #111; }
+  .badge-legal  { background: var(--accent);  color: #fff; }
+  .badge-indiv  { background: var(--border);  color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 10px 28px;
+    color: var(--muted); font-size: 11px; letter-spacing: .1em;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+    cursor: pointer;
+  }
+  tbody tr:hover { background: var(--surface); }
+  tbody td { padding: 11px 28px; vertical-align: middle; }
+  td.name { font-weight: bold; }
+  td.last-msg { color: var(--muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  a.row-link { text-decoration: none; color: inherit; display: contents; }
+
+  .empty { padding: 60px 28px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚖ ЮРИДИЧЕСКАЯ ПЛАТФОРМА / ДАШБОРД</h1>
+  <div style="display:flex;gap:20px;align-items:center;">
+    <a href="/admin/">Админка</a>
+    <a href="/admin/bot/lead/">Заявки</a>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Поиск по имени, телефону, username…">
+  <span style="color:var(--muted);font-size:11px;">Контактов: {{ contacts|length }}</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Контакт</th>
+      <th>Тип</th>
+      <th>Телефон</th>
+      <th>Последнее сообщение</th>
+      <th>Время</th>
+      <th>Статус</th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+  {% for c in contacts %}
+    <tr onclick="location.href='{% url 'manager:chat' c.id %}'" data-search="{{ c|lower }} {{ c.phone }} {{ c.telegram_username }}">
+      <td class="name">
+        {% if c.unread %}<span style="color:var(--danger);margin-right:6px;">●</span>{% endif %}
+        {{ c }}
+        {% if c.telegram_username %}<span style="color:var(--muted);font-size:11px;"> @{{ c.telegram_username }}</span>{% endif %}
+      </td>
+      <td>
+        {% if c.client_type == 'legal_entity' %}
+          <span class="badge badge-legal">Юрлицо</span>
+        {% else %}
+          <span class="badge badge-indiv">Физлицо</span>
+        {% endif %}
+      </td>
+      <td>{{ c.phone|default:"—" }}</td>
+      <td class="last-msg">{{ c.last_msg.text|default:"—"|truncatechars:60 }}</td>
+      <td class="time">{% if c.last_msg %}{{ c.last_msg.timestamp|date:"d.m H:i" }}{% else %}—{% endif %}</td>
+      <td>
+        {% if c.is_lead %}<span class="badge badge-lead">Лид</span>{% endif %}
+        {% if c.unread %}<span class="badge badge-new">Новое</span>{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="empty">Контактов пока нет</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<script>
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#tbody tr[data-search]').forEach(row => {
+    row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+  });
+});
+// Автообновление каждые 15 сек
+setTimeout(() => location.reload(), 15000);
+</script>
+</body>
+</html>

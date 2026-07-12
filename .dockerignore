@@ -1,0 +1,34 @@
+# .dockerignore
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.ruff_cache
+
+# Локальные медиафайлы (в продакшене — внешнее хранилище)
+media/
+
+# Статика генерируется при сборке
+staticfiles/
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Документация
+*.md
+docs/
+
+# Windows
+Thumbs.db
+desktop.ini

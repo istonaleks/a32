@@ -1,0 +1,28 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n unfold %}
+
+{% block title %}Главная | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+
+{# Плитки быстрого доступа #}
+{% if shortcuts %}
+<div class="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-3 lg:grid-cols-5">
+  {% for s in shortcuts %}
+  {% component "unfold/components/card.html" %}
+    <a href="{{ s.link }}" class="flex flex-col gap-2 no-underline group">
+      <span class="material-symbols-outlined text-3xl" style="color:{{ s.color }}">{{ s.icon }}</span>
+      <div>
+        <div class="font-semibold text-sm text-gray-900 dark:text-white group-hover:underline">{{ s.title }}</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ s.description }}</div>
+      </div>
+    </a>
+  {% endcomponent %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Стандартное содержимое главной (список моделей + лог) #}
+{{ block.super }}
+
+{% endblock %}

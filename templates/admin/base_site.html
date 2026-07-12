@@ -1,0 +1,87 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .chat-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #f75f4f;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: badgePop .2s ease;
+  }
+  @keyframes badgePop {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+</style>
+<script>
+(function() {
+  const POLL_INTERVAL = 5000;
+  const API_URL       = '/manager/api/unread-count/';
+  const BADGE_ID      = 'chat-unread-badge';
+
+  function getChatLink() {
+    return document.querySelector('a[href="/manager/"]');
+  }
+
+  function getOrCreateBadge(link) {
+    let badge = document.getElementById(BADGE_ID);
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = BADGE_ID;
+      badge.className = 'chat-badge';
+      link.appendChild(badge);
+    }
+    return badge;
+  }
+
+  function updateBadge(count) {
+    const link = getChatLink();
+    if (!link) return;
+
+    if (count > 0) {
+      const badge = getOrCreateBadge(link);
+      const label = count > 99 ? '99+' : String(count);
+      if (badge.textContent !== label) {
+        badge.textContent = label;
+        badge.style.animation = 'none';
+        badge.offsetHeight;
+        badge.style.animation = '';
+      }
+    } else {
+      const badge = document.getElementById(BADGE_ID);
+      if (badge) badge.remove();
+    }
+  }
+
+  async function poll() {
+    try {
+      const r = await fetch(API_URL, {credentials: 'same-origin'});
+      if (r.ok) {
+        const data = await r.json();
+        updateBadge(data.count);
+      }
+    } catch (e) {}
+    setTimeout(poll, POLL_INTERVAL);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', poll);
+  } else {
+    poll();
+  }
+})();
+</script>
+{% endblock %}

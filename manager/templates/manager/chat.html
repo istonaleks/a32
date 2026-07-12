@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чат — {{ contact }}</title>
+<style>
+  :root {
+    --bg:      #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+    --accent:  #4f8ef7; --accent2: #f7c04f;
+    --text:    #e8eaf0; --muted:   #6b7080;
+    --in:      #1e2535; --out:     #1a2e1a;
+    --font:    'JetBrains Mono', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font);
+         font-size: 13px; display: flex; flex-direction: column; height: 100vh; }
+
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+  }
+  header a { color: var(--muted); text-decoration: none; font-size: 18px; }
+  header a:hover { color: var(--text); }
+  .contact-name { font-size: 14px; font-weight: bold; }
+  .contact-meta { font-size: 11px; color: var(--muted); }
+  .actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-family: var(--font);
+    font-size: 11px; cursor: pointer; text-decoration: none;
+    transition: border-color .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Индикатор WS */
+  #ws-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); flex-shrink: 0;
+    title: 'WebSocket';
+  }
+  #ws-status.connected    { background: #4ff7a0; }
+  #ws-status.disconnected { background: #f75f4f; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  .chat-area { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+  #messages {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .msg {
+    max-width: 72%; padding: 9px 14px; border-radius: 6px;
+    line-height: 1.5; word-break: break-word; animation: fadeIn .15s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+  .msg.in  { background: var(--in);  align-self: flex-start; border-left: 2px solid var(--accent); }
+  .msg.out { background: var(--out); align-self: flex-end;   border-right: 2px solid var(--accent2); }
+  .msg .meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .msg.in  .meta { text-align: left; }
+  .msg.out .meta { text-align: right; }
+
+  .input-area {
+    display: flex; gap: 10px; padding: 14px 20px;
+    border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+  }
+  #msg-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 14px; border-radius: 4px;
+    font-family: var(--font); font-size: 13px; resize: none; outline: none;
+    min-height: 42px; max-height: 120px;
+  }
+  #msg-input:focus { border-color: var(--accent); }
+  #send-btn {
+    padding: 0 20px; background: var(--accent); color: #fff;
+    border: none; border-radius: 4px; font-family: var(--font);
+    font-size: 12px; cursor: pointer; transition: opacity .15s;
+  }
+  #send-btn:hover { opacity: .85; }
+  #send-btn:disabled { opacity: .4; cursor: default; }
+
+  /* Боковая панель */
+  .sidebar { width: 280px; border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+  .sidebar-section { border-bottom: 1px solid var(--border); }
+  .sidebar-section h3 {
+    padding: 12px 16px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--muted); background: var(--surface);
+  }
+  .sidebar-section ul { list-style: none; }
+  .sidebar-section li { padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .sidebar-section li:last-child { border: none; }
+  .field-label { color: var(--muted); font-size: 10px; margin-bottom: 2px; }
+  .lead-status {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: bold;
+  }
+  .status-new       { background: #f75f4f22; color: #f75f4f; border: 1px solid #f75f4f55; }
+  .status-in_work   { background: #4f8ef722; color: #4f8ef7; border: 1px solid #4f8ef755; }
+  .status-done      { background: #4ff7a022; color: #4ff7a0; border: 1px solid #4ff7a055; }
+  .status-cancelled { background: #6b708022; color: #6b7080; border: 1px solid #6b708055; }
+  .doc-link { color: var(--accent); text-decoration: none; }
+  .doc-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="{% url 'manager:dashboard' %}">←</a>
+  <div>
+    <div class="contact-name">{{ contact }}</div>
+    <div class="contact-meta">
+      chat_id: {{ contact.telegram_chat_id }}
+      {% if contact.phone %} · {{ contact.phone }}{% endif %}
+      {% if contact.email %} · {{ contact.email }}{% endif %}
+    </div>
+  </div>
+  <div class="actions">
+    <div id="ws-status" title="WebSocket"></div>
+    <a class="btn" href="/admin/bot/contact/{{ contact.id }}/change/" target="_blank">Редактировать</a>
+    <a class="btn" href="/admin/bot/lead/?contact__id={{ contact.id }}" target="_blank">Заявки</a>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="chat-area">
+    <div id="messages">
+      {% for msg in messages %}
+        <div class="msg {{ msg.direction }}" id="msg-{{ msg.id }}">
+          {{ msg.text }}
+          <div class="meta">
+            {% if msg.direction == 'in' %}Клиент{% else %}Менеджер{% endif %}
+            · {{ msg.timestamp|date:"d.m.Y H:i" }}
+          </div>
+        </div>
+      {% empty %}
+        <div id="empty-hint" style="color:var(--muted);text-align:center;margin-top:40px;">Сообщений пока нет</div>
+      {% endfor %}
+    </div>
+
+    <div class="input-area">
+      <textarea id="msg-input" placeholder="Введите сообщение… (Enter — отправить, Shift+Enter — перенос)" rows="1"></textarea>
+      <button id="send-btn">Отправить</button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Реквизиты</h3>
+      <ul>
+        <li><div class="field-label">Тип</div>{{ contact.get_client_type_display }}</li>
+        {% if contact.client_type == 'individual' %}
+          {% if contact.inn_individual %}<li><div class="field-label">ИНН</div>{{ contact.inn_individual }}</li>{% endif %}
+          {% if contact.passport_number %}<li><div class="field-label">Паспорт</div>{{ contact.passport_series }} {{ contact.passport_number }}</li>{% endif %}
+        {% else %}
+          {% if contact.inn_legal %}<li><div class="field-label">ИНН</div>{{ contact.inn_legal }}</li>{% endif %}
+          {% if contact.ogrn %}<li><div class="field-label">ОГРН</div>{{ contact.ogrn }}</li>{% endif %}
+          {% if contact.director_name %}<li><div class="field-label">Руководитель</div>{{ contact.director_name }}</li>{% endif %}
+        {% endif %}
+        {% if contact.registration_address %}
+          <li><div class="field-label">Адрес</div>{{ contact.registration_address }}</li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Заявки ({{ leads|length }})</h3>
+      <ul>
+        {% for lead in leads %}
+          <li>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span>#{{ lead.id }}</span>
+              <span class="lead-status status-{{ lead.status }}">{{ lead.get_status_display }}</span>
+            </div>
+            <div>{{ lead.product|default:"Услуга не указана" }}</div>
+            <div class="field-label">{{ lead.created_at|date:"d.m.Y H:i" }}</div>
+          </li>
+        {% empty %}
+          <li style="color:var(--muted);">Нет заявок</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Документы ({{ docs|length }})</h3>
+      <ul>
+        {% for doc in docs %}
+          <li>
+            <a class="doc-link" href="{{ doc.file.url }}" target="_blank">{{ doc.filename|default:"Документ" }}</a>
+            <div class="field-label">{{ doc.uploaded_at|date:"d.m.Y H:i" }}</div>
+          </li>
+        {% empty %}
+          <li style="color:var(--muted);">Нет документов</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const contactId = {{ contact.id }};
+const feed      = document.getElementById('messages');
+const input     = document.getElementById('msg-input');
+const btn       = document.getElementById('send-btn');
+const wsStatus  = document.getElementById('ws-status');
+
+// ── Утилиты ──────────────────────────────────────────────────────────
+function scrollBottom() { feed.scrollTop = feed.scrollHeight; }
+
+function appendMsg(id, text, direction, time) {
+  const hint = document.getElementById('empty-hint');
+  if (hint) hint.remove();
+
+  // Дубликат (своё сообщение уже добавлено оптимистично)
+  if (id && document.getElementById('msg-' + id)) return;
+
+  const div = document.createElement('div');
+  div.className = `msg ${direction}`;
+  if (id) div.id = 'msg-' + id;
+  const who = direction === 'in' ? 'Клиент' : 'Менеджер';
+  div.innerHTML = `${escapeHtml(text)}<div class="meta">${who} · ${time}</div>`;
+  feed.appendChild(div);
+  scrollBottom();
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+scrollBottom();
+
+// ── WebSocket ─────────────────────────────────────────────────────────
+const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+const wsUrl   = `${wsProto}://${location.host}/ws/chat/${contactId}/`;
+let ws        = null;
+let reconnectDelay = 1000;
+
+function connect() {
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    wsStatus.className = 'connected';
+    wsStatus.title = 'WebSocket: подключён';
+    reconnectDelay = 1000;
+    console.log('WS connected');
+  };
+
+  ws.onclose = () => {
+    wsStatus.className = 'disconnected';
+    wsStatus.title = 'WebSocket: переподключение…';
+    console.log(`WS closed, retry in ${reconnectDelay}ms`);
+    setTimeout(connect, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 16000);
+  };
+
+  ws.onerror = (e) => console.error('WS error', e);
+
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    appendMsg(m.id, m.text, m.direction, m.time);
+  };
+}
+
+connect();
+
+// ── Отправка ─────────────────────────────────────────────────────────
+function sendMsg() {
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+  // Оптимистичный показ (без id — придёт из WS после сохранения)
+  const now = new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+  appendMsg(null, text, 'out', now);
+
+  ws.send(JSON.stringify({text}));
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+btn.addEventListener('click', sendMsg);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+// Авторастягивание textarea
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+</script>
+</body>
+</html>
