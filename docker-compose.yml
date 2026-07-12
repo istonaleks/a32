@@ -34,7 +34,7 @@ services:
       DATABASE_URL: postgres://uk:11111@db:5432/ydtb
       REDIS_URL: redis://redis:6379/0
       DEBUG: "False"
-      SECRET_KEY: ${SECRET_KEY}
+      SECRET_KEY: insecure-abcdef1234567890abcdef1234567890abcdef12345
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
