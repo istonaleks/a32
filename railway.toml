@@ -1,24 +1,11 @@
 # railway.toml
-# Конфигурация деплоя на Railway
-# Документация: https://docs.railway.app/reference/config-as-code
-
 [build]
-# Railway автоматически обнаружит Dockerfile
-# Если хотите явно указать:
-# builder = "DOCKERFILE"
-# dockerfilePath = "Dockerfile"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-# Команда запуска (переопределяет CMD в Dockerfile если нужно)
-startCommand = "gunicorn core.asgi:application -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
-
-# Railway передаёт PORT автоматически — не хардкодьте 8000
-# Переменная $PORT подставляется Railway
-
-# Health check
+startCommand = "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.asgi:application -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
 healthcheckPath = "/admin/login/"
 healthcheckTimeout = 30
-
-# Перезапуск при падении
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
