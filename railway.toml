@@ -4,7 +4,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.asgi:application -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
+startCommand = "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.asgi:application -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --access-logfile - --error-logfile - --timeout 120"
 healthcheckPath = "/admin/login/"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
