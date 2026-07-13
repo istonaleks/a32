@@ -4,7 +4,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --log-level debug 2>&1 | tee /tmp/g.log & sleep 30 && cat /tmp/g.log"
+startCommand = "sh -c 'python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120 --workers 2 --access-logfile - --error-logfile -'"
 healthcheckPath = "/admin/login/"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
