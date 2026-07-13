@@ -160,7 +160,7 @@ CACHES = {
 }
 
 # Сессии через Redis (быстрее чем DB-сессии)
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_ENGINE = os.environ.get('SESSION_ENGINE', 'django.contrib.sessions.backends.cache')
 SESSION_CACHE_ALIAS = 'default'
 
 # Django Channels — слой каналов через Redis
