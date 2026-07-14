@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+web: python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn core.asgi:application -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120
